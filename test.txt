@@ -2,6 +2,56 @@
 
 Практический опыт показывает, что консультация с профессионалами из IT обеспечивает широкому кругу специалистов участие в формировании дальнейших направлений развития проекта. Значимость этих проблем настолько очевидна, что рамки и место обучения кадров в значительной степени обуславливает создание существующих финансовых и административных условий. Практический опыт показывает, что реализация намеченного плана развития напрямую зависит от позиций, занимаемых участниками в отношении поставленных задач. Значимость этих проблем настолько очевидна, что курс на социально-ориентированный национальный проект способствует подготовке и реализации системы обучения кадров, соответствующей насущным потребностям!
 
-Дорогие друзья, дальнейшее развитие различных форм деятельности позволяет выполнить важнейшие задания по разработке ключевых компонентов планируемого обновления!
+#include <QAxObject>
 
-Равным образом реализация намеченного плана развития представляет собой интересный эксперимент проверки системы масштабного изменения ряда параметров. Не следует, однако, забывать о том, что курс на социально-ориентированный национальный проект способствует подготовке и реализации новых предложений! С другой стороны постоянный количественный рост и сфера нашей активности играет важную роль в...
+void parseDocxTable(const QString& filePath)
+{
+    QAxObject* wordApplication = new QAxObject("Word.Application");
+    QAxObject* documents = wordApplication->querySubObject("Documents");
+    QAxObject* document = documents->querySubObject("Open(const QString&)", filePath);
+    QAxObject* tables = document->querySubObject("Tables");
+    int tableCount = tables->property("Count").toInt();
+
+    for (int i = 1; i <= tableCount; ++i) {
+        QAxObject* table = tables->querySubObject("Item(int)", i);
+        QAxObject* rows = table->querySubObject("Rows");
+        int rowCount = rows->property("Count").toInt();
+
+        for (int j = 1; j <= rowCount; ++j) {
+            QAxObject* row = rows->querySubObject("Item(int)", j);
+            QAxObject* cells = row->querySubObject("Cells");
+            int cellCount = cells->property("Count").toInt();
+
+            for (int k = 1; k <= cellCount; ++k) {
+                QAxObject* cell = cells->querySubObject("Item(int)", k);
+                QString cellText = cell->property("Range").toString();
+                // Делайте что-то с текстом ячейки
+                qDebug() << "Ячейка:" << cellText;
+                cell->dynamicCall("Delete()");
+                delete cell;
+            }
+            delete cells;
+            delete row;
+        }
+        delete rows;
+        delete table;
+    }
+
+    document->dynamicCall("Save()");
+    document->dynamicCall("Close()");
+    delete tables;
+    delete document;
+    delete documents;
+    wordApplication->dynamicCall("Quit()");
+    delete wordApplication;
+}
+
+int main(int argc, char* argv[])
+{
+    QCoreApplication app(argc, argv);
+
+    QString filePath = "путь_к_файлу.docx";
+    parseDocxTable(filePath);
+
+    return app.exec();
+}
