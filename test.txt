@@ -55,3 +55,58 @@ int main(int argc, char* argv[])
 
     return app.exec();
 }
+
+#include <QAxObject>
+#include <QDebug>
+
+void parseTableFromDocx(const QString& filePath)
+{
+    QAxObject* wordApp = new QAxObject("Word.Application");
+    QAxObject* documents = wordApp->querySubObject("Documents");
+    QAxObject* document = documents->querySubObject("Open(const QString&)", filePath);
+
+    QAxObject* tables = document->querySubObject("Tables");
+    int tableCount = tables->property("Count").toInt();
+    qDebug() << "Table Count:" << tableCount;
+
+    for (int i = 1; i <= tableCount; ++i)
+    {
+        QAxObject* table = tables->querySubObject("Item(int)", i);
+        int rowCount = table->property("Rows")->property("Count").toInt();
+        int columnCount = table->property("Columns")->property("Count").toInt();
+        qDebug() << "Table" << i << "Row Count:" << rowCount;
+        qDebug() << "Table" << i << "Column Count:" << columnCount;
+
+        for (int row = 1; row <= rowCount; ++row)
+        {
+            for (int column = 1; column <= columnCount; ++column)
+            {
+                QAxObject* cell = table->querySubObject("Cell(int,int)", row, column);
+                QString cellText = cell->dynamicCall("Range.Text").toString();
+                qDebug() << "Table" << i << "Row" << row << "Column" << column << "Text:" << cellText;
+                cell->dynamicCall("Release()");
+            }
+        }
+
+        table->dynamicCall("Release()");
+    }
+
+    tables->dynamicCall("Release()");
+    document->dynamicCall("Close()");
+    documents->dynamicCall("Release()");
+    wordApp->dynamicCall("Quit()");
+    wordApp->dynamicCall("Release()");
+
+    delete wordApp;
+}
+
+int main(int argc, char* argv[])
+{
+    QCoreApplication app(argc, argv);
+
+    QString filePath = "path/to/your/file.docx";
+    parseTableFromDocx(filePath);
+
+    return app.exec();
+}
+
