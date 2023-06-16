@@ -1,3 +1,69 @@
 The Navstar GPS system is composed of three main parts: the space segment, the control segment, and the user segment. The space segment consists of the Navstar constellation, which includes multiple satellites orbiting the Earth. The constellation was completed in 1994 and currently consists of 24 Block II satellites, with three spares in reserve. Each Block II satellite weighs around 900 kg (2,000 pounds) and has a width of approximately 17 meters (56 feet) when its solar panels are extended.
 The control segment includes a Master Control Station located in Colorado and four unmanned monitoring stations situated in Hawaii, Kwajalein Atoll, Diego Garcia, and Ascension Island. These stations track the GPS satellites to monitor orbital changes caused by various factors such as gravitational pulls from the Moon and Sun, Earth's nonspherical shape, and solar radiation pressure. The Master Control Station processes this information and sends corrected orbital data to the satellites through ground antennas.
 The user segment comprises the GPS receivers that receive and decode the signals transmitted by the satellites. There are numerous types of GPS receivers designed for different applications, including navigation in automobiles, trucks, submarines, ships, aircraft, and even orbiting satellites. Additionally, smaller GPS receiver models have been developed for personal use and installation.
+#include <QCoreApplication>
+#include <QDebug>
+#include <QAxObject>
+
+int main(int argc, char *argv[])
+{
+    QCoreApplication a(argc, argv);
+
+    QAxObject* word = new QAxObject("Word.Application");
+    word->setProperty("Visible", false);
+    QAxObject* documents = word->querySubObject("Documents");
+
+    QString fileName = "path/to/your/document.docx";
+    QAxObject* document = documents->querySubObject("Open(const QString&)", fileName);
+
+    QAxObject* tables = document->querySubObject("Tables");
+    int tableCount = tables->property("Count").toInt();
+
+    for (int tableIndex = 1; tableIndex <= tableCount; ++tableIndex) {
+        QAxObject* table = tables->querySubObject("Item(int)", tableIndex);
+
+        int rowCount = table->property("Rows")->property("Count").toInt();
+        int columnCount = table->property("Columns")->property("Count").toInt();
+
+        qDebug() << "Table:" << tableIndex;
+        for (int row = 1; row <= rowCount; ++row) {
+            for (int col = 1; col <= columnCount; ++col) {
+                QAxObject* cell = table->querySubObject("Cell(int,int)", row, col);
+
+                // Проверяем, является ли ячейка объединенной
+                bool isMergedCell = cell->property("MergeCells")->toBool();
+                if (isMergedCell) {
+                    QAxObject* mergeArea = cell->querySubObject("MergeArea");
+                    int mergeRowCount = mergeArea->property("Rows")->property("Count").toInt();
+                    int mergeColCount = mergeArea->property("Columns")->property("Count").toInt();
+
+                    // Обрабатываем только первую ячейку в объединенной области
+                    if (mergeRowCount > 1 && mergeColCount > 1 && row == mergeArea->property("Row")->toInt() && col == mergeArea->property("Column")->toInt()) {
+                        QString mergedContent = mergeArea->property("Range")->property("Text").toString();
+                        qDebug() << "Row:" << row << "Column:" << col << "Content:" << mergedContent;
+                    }
+
+                    delete mergeArea;
+                } else {
+                    QString cellContent = cell->property("Range")->property("Text").toString();
+                    qDebug() << "Row:" << row << "Column:" << col << "Content:" << cellContent;
+                }
+
+                delete cell;
+            }
+        }
+
+        qDebug() << "--------";
+
+        delete table;
+    }
+
+    document->dynamicCall("Close()");
+    word->dynamicCall("Quit()");
+
+    delete document;
+    delete documents;
+    delete word;
+
+    return a.exec();
+}
