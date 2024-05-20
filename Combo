@@ -1,0 +1,48 @@
+#include <QComboBox>
+#include <QLineEdit>
+#include <QCompleter>
+#include <QToolTip>
+#include <QStringList>
+#include <QAbstractItemView>
+#include <QStandardItemModel>
+#include <QHoverEvent>
+
+class CustomComboBox : public QComboBox {
+    Q_OBJECT
+
+public:
+    CustomComboBox(QWidget *parent = nullptr) : QComboBox(parent) {
+        // Настройка QLineEdit и QCompleter
+        setEditable(true);
+        QLineEdit *lineEdit = new QLineEdit(this);
+        setLineEdit(lineEdit);
+
+        QStringList items{"Option 1", "Option 2", "Option 3"};
+        QCompleter *completer = new QCompleter(items, this);
+        completer->setCaseSensitivity(Qt::CaseInsensitive);
+        completer->setFilterMode(Qt::MatchContains);
+        lineEdit->setCompleter(completer);
+
+        // Добавление элементов с подсказками
+        for (const auto &item : items) {
+            addItem(item);
+        }
+
+        // Подключение событий
+        connect(this, &QComboBox::highlighted, this, &CustomComboBox::showToolTip);
+    }
+
+protected:
+    void showToolTip(int index) {
+        QToolTip::showText(QCursor::pos(), itemText(index), this);
+    }
+};
+
+#include "main.moc"
+
+int main(int argc, char *argv[]) {
+    QApplication app(argc, argv);
+    CustomComboBox comboBox;
+    comboBox.show();
+    return app.exec();
+}
